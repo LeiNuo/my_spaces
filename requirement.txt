@@ -1,0 +1,7 @@
+tensorflow-gpu==1.15
+bert4keras==0.9.7
+tqdm==4.62.3
+jieba==0.42.1
+Keras==2.3.1
+rouge==1.0.1
+h5py==2.10.0
