@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import tools
 import sys
+from tqdm import tqdm
 
 sys.setrecursionlimit(100000)
 """
@@ -89,13 +90,10 @@ if __name__ == '__main__':
     log = open('run.log', 'w')
     # todo 对输入的text的中文数字变为数字
     train_df_iter = pd.read_csv('datasets/train_dataset.csv', sep='|', chunksize=1000)
-    for _, train_df in enumerate(train_df_iter):
+    for train_df in tqdm(train_df_iter):
         try:
-            print(_)
-            log.write(str(_)+'\n')
-            log.flush()
             train_df[['texts', 'summaries', 'pred_summary', 'metric', 'couverage']] = train_df.apply(calc_metrics, axis=1, result_type='expand')
-            train_df.to_csv('datasets/train_dataset_pre_summary.csv', sep='|', index=False, mode='a')
+            # train_df.to_csv('datasets/train_dataset_pre_summary.csv', sep='|', index=False, mode='a')
         except Exception as e:
             log.writelines(str(e))
     log.close()
