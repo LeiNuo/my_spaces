@@ -27,6 +27,8 @@ batch_size = 8
 epochs = 50
 k_sparse = 10
 
+user_dict_path = 'D:/work_dir/V3/natural_language/spaces/datasets/user_dict.txt'
+user_dict_path_2 = 'D:/work_dir/V3/natural_language/spaces/datasets/user_dict_2.txt'
 nezha_config_path = 'D:/work_dir/V3/natural_language/spaces/chinese_rbt3_L-3_H-768_A-12/bert_config_rbt3.json'
 nezha_checkpoint_path = 'D:/work_dir/V3/natural_language/spaces/chinese_rbt3_L-3_H-768_A-12/bert_model.ckpt'
 nezha_dict_path = 'D:/work_dir/V3/natural_language/spaces/chinese_rbt3_L-3_H-768_A-12/vocab.txt'
@@ -64,9 +66,7 @@ def load_user_dict(filename):
             user_dict.append(w)
     return user_dict
 
-
-user_dict_path = 'D:/work_dir/V3/natural_language/spaces/datasets/user_dict.txt'
-user_dict_path_2 = 'D:/work_dir/V3/natural_language/spaces/datasets/user_dict_2.txt'
+# todo 为什么要加这个，不太明白
 user_dict = []
 for w in load_user_dict(user_dict_path) + load_user_dict(user_dict_path_2):
     if w not in token_dict:
