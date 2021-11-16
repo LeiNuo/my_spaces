@@ -27,9 +27,9 @@ batch_size = 8
 epochs = 50
 k_sparse = 10
 
-nezha_config_path = './chinese_rbt3_L-3_H-768_A-12/bert_config_rbt3.json'
-nezha_checkpoint_path = './chinese_rbt3_L-3_H-768_A-12/bert_model.ckpt'
-nezha_dict_path = './chinese_rbt3_L-3_H-768_A-12/vocab.txt'
+nezha_config_path = 'D:/work_dir/V3/natural_language/spaces/chinese_rbt3_L-3_H-768_A-12/bert_config_rbt3.json'
+nezha_checkpoint_path = 'D:/work_dir/V3/natural_language/spaces/chinese_rbt3_L-3_H-768_A-12/bert_model.ckpt'
+nezha_dict_path = 'D:/work_dir/V3/natural_language/spaces/chinese_rbt3_L-3_H-768_A-12/vocab.txt'
 fold = 0
 
 
@@ -53,6 +53,26 @@ token_dict, keep_tokens = load_vocab(
 )
 pure_tokenizer = Tokenizer(token_dict.copy(), do_lower_case=True)
 
+
+def load_user_dict(filename):
+    """加载用户词典
+    """
+    user_dict = []
+    with open(filename, encoding='utf-8') as f:
+        for l in f:
+            w = l.split()[0]
+            user_dict.append(w)
+    return user_dict
+
+
+user_dict_path = 'D:/work_dir/V3/natural_language/spaces/datasets/user_dict.txt'
+user_dict_path_2 = 'D:/work_dir/V3/natural_language/spaces/datasets/user_dict_2.txt'
+user_dict = []
+for w in load_user_dict(user_dict_path) + load_user_dict(user_dict_path_2):
+    if w not in token_dict:
+        token_dict[w] = len(token_dict)
+        user_dict.append(w)
+compound_tokens = [pure_tokenizer.encode(w)[0][1:-1] for w in user_dict]
 
 tokenizer = Tokenizer(
     token_dict,
@@ -163,11 +183,11 @@ class CrossEntropy(Loss):
 model = build_transformer_model(
     nezha_config_path,
     nezha_checkpoint_path,
-    model='nezha',
+    model='bert',
     application='unilm',
     with_mlm='linear',
     keep_tokens=keep_tokens,  # 只保留keep_tokens中的字，精简原字表
-    compound_tokens=[],
+    compound_tokens=compound_tokens,
 )
 model.summary()
 output = model.get_layer('MLM-Norm').output
@@ -252,11 +272,11 @@ class AutoSummary(AutoRegressiveDecoder):
         return tokenizer.decode(output_ids)
 
 
-# autosummary = AutoSummary(
-#     start_id=tokenizer._token_start_id,
-#     end_id=tokenizer._token_end_id,
-#     maxlen=maxlen // 2
-# )
+autosummary = AutoSummary(
+    start_id=tokenizer._token_start_id,
+    end_id=tokenizer._token_end_id,
+    maxlen=maxlen // 2
+)
 
 
 def evaluate(data, topk=1, filename=None):
@@ -283,14 +303,19 @@ class Evaluator(keras.callbacks.Callback):
     """
     def on_epoch_end(self, epoch, logs=None):
         optimizer.apply_ema_weights()
-        model.save_weights('weights/seq2seq_model.%s.weights' % epoch)  # 保存模型
+        temp_path = 'weights/seq2seq_model.%s.weights' % epoch
+        model.save_weights(temp_path)  # 保存模型
         optimizer.reset_old_weights()
 
 
 def data_split(input_data):
-    input_data['text'] = input_data['reverst_keys'] + input_data['high_key'] + input_data['textrank'] + input_data['own_key']
-    train_df = input_data.sample(frac=0.8)[['text', 'abstract']]
-    test_df = input_data[~input_data.index.isin(train_df.index)][['text', 'abstract']]
+    # todo 可以根据原文进行排序
+    input_data['source_1'] = input_data['reverst_keys'] + input_data['high_key'] + input_data['textrank'] + input_data['own_key']
+    input_data['source_1'] = input_data['source_1'].apply(lambda x: ''.join(x))
+    input_data['source_2'] = input_data['source_1']
+    input_data = input_data.rename(columns={'abstract': 'target'})
+    train_df = input_data.sample(frac=0.8)[['source_1', 'source_2', 'target']]
+    test_df = input_data[~input_data.index.isin(train_df.index)][['source_1', 'source_2', 'target']]
     return train_df, test_df
 
 
@@ -303,8 +328,7 @@ if __name__ == '__main__':
 
     # 启动训练
     evaluator = Evaluator()
-    train_generator = data_generator(train_df, batch_size)
-    cc = [i for i in train_generator]
+    train_generator = data_generator(train_df.to_dict('records'), batch_size)
 
     train_model.fit_generator(
         train_generator.forfit(),
