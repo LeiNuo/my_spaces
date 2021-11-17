@@ -308,14 +308,14 @@ class Evaluator(keras.callbacks.Callback):
         if epoch%4==1:
           temp_path = '/content/drive/MyDrive/temp_file/seq2seq_model.%s.weights' % epoch
         else:
-          temp_path = 'weights/seq2seq_model.%s.weights' % epoch
+          temp_path = 'seq2seq_model.%s.weights' % epoch
         model.save_weights(temp_path)  # 保存模型
         optimizer.reset_old_weights()
 
 
 def data_split(input_data):
     # todo 可以根据原文进行排序
-    input_data['source_1'] = input_data['reverst_keys'] + input_data['high_key'] + input_data['textrank'] + input_data['own_key']
+    input_data['source_1'] = input_data['key_words']
     input_data['source_1'] = input_data['source_1'].apply(lambda x: ''.join(x))
     input_data['source_2'] = input_data['source_1']
     input_data = input_data.rename(columns={'abstract': 'target'})
@@ -326,9 +326,20 @@ def data_split(input_data):
 
 if __name__ == '__main__':
     # 加载数据
-    data = load_data('datasets/train_dataset_key.csv')
+    # data = load_data('datasets/train_dataset_key.csv')
 
-    train_df, test_df = data_split(data)
+    # train_df, test_df = data_split(data)
+    callback = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=3, min_delta=0.001)
+    checkpoint_filepath = '/content/drive/MyDrive/temp_file/seq2seq_model.best.weights'
+    model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+        filepath=checkpoint_filepath,
+        save_weights_only=True,
+        monitor='val_accuracy',
+        mode='max',
+        save_best_only=True)
+
+    train_df = pd.read_csv('datasets/train_dataset_key_train.csv', sep='|')
+    test_df = pd.read_csv('datasets/train_dataset_key_test.csv', sep='|')
     # valid_data = data_split(data, fold, num_folds, 'valid')
 
     # 启动训练
@@ -339,5 +350,5 @@ if __name__ == '__main__':
         train_generator.forfit(),
         steps_per_epoch=len(train_generator),
         epochs=epochs,
-        callbacks=[evaluator]
+        callbacks=[evaluator, callback, model_checkpoint_callback]
     )
