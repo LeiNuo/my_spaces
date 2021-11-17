@@ -35,15 +35,17 @@ nezha_dict_path = 'D:/work_dir/V3/natural_language/spaces/chinese_rbt3_L-3_H-768
 fold = 0
 
 
+def sort_keywords(row):
+    idxs = [(i, row['abstract'].find(i))for i in set(row['key_words'])]
+    return [i[0] for i in sorted(idxs, key=lambda i: i[1])]
+
+
 def load_data(filename):
     """加载数据
     返回：[{...}]
     """
-    train_df = pd.read_csv('datasets/train_dataset_key.csv', sep='|')
-    train_df['reverst_keys'] = train_df['reverst_keys'].apply(ast.literal_eval)
-    train_df['high_key'] = train_df['high_key'].apply(ast.literal_eval)
-    train_df['textrank'] = train_df['textrank'].apply(ast.literal_eval)
-    train_df['own_key'] = train_df['own_key'].apply(ast.literal_eval)
+    train_df = pd.read_csv(filename, sep='|')
+    train_df['key_words'] = train_df['key_words'].apply(ast.literal_eval)
     return train_df
 
 
@@ -152,7 +154,7 @@ class CrossEntropy(Loss):
         copy_loss = self.compute_copy_loss(inputs, mask)
         self.add_metric(seq2seq_loss, 'seq2seq_loss')
         self.add_metric(copy_loss, 'copy_loss')
-        return seq2seq_loss + 2 * copy_loss
+        return seq2seq_loss + 0.5 * copy_loss
 
     def compute_seq2seq_loss(self, inputs, mask=None):
         y_true, y_mask, _, y_pred, _ = inputs
@@ -303,7 +305,10 @@ class Evaluator(keras.callbacks.Callback):
     """
     def on_epoch_end(self, epoch, logs=None):
         optimizer.apply_ema_weights()
-        temp_path = 'weights/seq2seq_model.%s.weights' % epoch
+        if epoch%4==1:
+          temp_path = '/content/drive/MyDrive/temp_file/seq2seq_model.%s.weights' % epoch
+        else:
+          temp_path = 'weights/seq2seq_model.%s.weights' % epoch
         model.save_weights(temp_path)  # 保存模型
         optimizer.reset_old_weights()
 
