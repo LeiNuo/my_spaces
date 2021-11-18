@@ -319,8 +319,8 @@ def data_split(input_data):
     input_data['source_1'] = input_data['source_1'].apply(lambda x: ''.join(x))
     input_data['source_2'] = input_data['source_1']
     input_data = input_data.rename(columns={'abstract': 'target'})
-    train_df = input_data.sample(frac=0.8)[['source_1', 'source_2', 'target']]
-    test_df = input_data[~input_data.index.isin(train_df.index)][['source_1', 'source_2', 'target']]
+    train_df = input_data.sample(frac=0.8)[['id','source_1', 'source_2', 'target']]
+    test_df = input_data[~input_data.index.isin(train_df.index)][['id', 'source_1', 'source_2', 'target']]
     return train_df, test_df
 
 
@@ -328,27 +328,28 @@ if __name__ == '__main__':
     # 加载数据
     data = load_data('datasets/train_dataset_key.csv')
 
-    # train_df, test_df = data_split(data)
-    callback = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=3, min_delta=0.001)
-    checkpoint_filepath = '/content/drive/MyDrive/temp_file/seq2seq_model.best.weights'
-    model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
-        filepath=checkpoint_filepath,
-        save_weights_only=True,
-        monitor='val_accuracy',
-        mode='max',
-        save_best_only=True)
-
-    train_df = pd.read_csv('datasets/train_dataset_key_train.csv', sep='|')
-    test_df = pd.read_csv('datasets/train_dataset_key_test.csv', sep='|')
-    # valid_data = data_split(data, fold, num_folds, 'valid')
-
-    # 启动训练
-    evaluator = Evaluator()
-    train_generator = data_generator(train_df.to_dict('records'), batch_size)
-
-    train_model.fit_generator(
-        train_generator.forfit(),
-        steps_per_epoch=len(train_generator),
-        epochs=epochs,
-        callbacks=[evaluator, callback, model_checkpoint_callback]
-    )
+    train_df, test_df = data_split(data)
+    train_df.to_csv('datasets/train_dataset_key_train.csv', sep='|', index=False)
+    test_df.to_csv('datasets/train_dataset_key_test.csv', sep='|', index=False)
+    # callback = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=3, min_delta=0.001)
+    # checkpoint_filepath = '/content/drive/MyDrive/temp_file/seq2seq_model.best.weights'
+    # model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+    #     filepath=checkpoint_filepath,
+    #     save_weights_only=True,
+    #     monitor='val_accuracy',
+    #     mode='max',
+    #     save_best_only=True)
+    #
+    # train_df = pd.read_csv('datasets/train_dataset_key_train.csv', sep='|')
+    # test_df = pd.read_csv('datasets/train_dataset_key_test.csv', sep='|')
+    # # valid_data = data_split(data, fold, num_folds, 'valid')
+    # # 启动训练
+    # evaluator = Evaluator()
+    # train_generator = data_generator(train_df.to_dict('records'), batch_size)
+    #
+    # train_model.fit_generator(
+    #     train_generator.forfit(),
+    #     steps_per_epoch=len(train_generator),
+    #     epochs=epochs,
+    #     callbacks=[evaluator, callback, model_checkpoint_callback]
+    # )

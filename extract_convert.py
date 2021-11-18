@@ -72,18 +72,18 @@ def calc_coverage(summary, text):
 
 def calc_metrics(row):
     content, abstract = row['content'], row['abstract']
-    texts = text_split(content, ['【坐席】', '【客户】'])
-    # todo 考虑看看summary要不要以句子进行分开, abstract最后两句都是客气的语气，没有实际的意义
+    content = content.replace('【坐席】', '【坐席】A').replace('【客户】', '【客户】B')
+    texts = text_split(content, ['【坐席】', '【客户】', '，', '。'])
     # todo 用户不认可这个态度没有提取到
-    summaries = text_split(abstract, u'\n。；：，')
-
-    summaries_cc = extract_matching(texts, summaries)
-    labels = sorted(set([int(i[1]) for i in summaries_cc]))
-
-    pred_summary = ''.join([texts[i] for i in labels])
-    metric = tools.compute_main_metric(pred_summary, abstract)
-    couverage = calc_coverage(set(abstract), set(pred_summary))
-    return texts, labels, pred_summary, metric, couverage
+    # summaries = text_split(abstract, u'\n。；：，')
+    #
+    # summaries_cc = extract_matching(texts, summaries)
+    # labels = sorted(set([int(i[1]) for i in summaries_cc]))
+    #
+    # pred_summary = ''.join([texts[i] for i in labels])
+    # metric = tools.compute_main_metric(pred_summary, abstract)
+    # couverage = calc_coverage(set(abstract), set(pred_summary))
+    return texts
 
 
 if __name__ == '__main__':
@@ -91,9 +91,7 @@ if __name__ == '__main__':
     # todo 对输入的text的中文数字变为数字
     train_df_iter = pd.read_csv('datasets/train_dataset.csv', sep='|', chunksize=1000)
     for train_df in tqdm(train_df_iter):
-        try:
-            train_df[['texts', 'summaries', 'pred_summary', 'metric', 'couverage']] = train_df.apply(calc_metrics, axis=1, result_type='expand')
-            # train_df.to_csv('datasets/train_dataset_pre_summary.csv', sep='|', index=False, mode='a')
-        except Exception as e:
-            log.writelines(str(e))
+        train_df['texts'] = train_df.apply(calc_metrics, axis=1)
+        train_df.to_csv('datasets/train_dataset_pre_summary_2.csv', sep='|', index=False, mode='a')
+
     log.close()

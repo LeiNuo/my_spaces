@@ -131,28 +131,36 @@ threshold = 0.2
 model = create_model()
 
 if __name__ == '__main__':
+    train_idx = pd.read_csv('datasets/train_dataset_key_train.csv', sep='|')['id']
+    whole_df = pd.read_csv('datasets/train_dataset_key.csv', sep='|')
+    whole_df['key_words'] = whole_df['key_words'].apply(ast.literal_eval)
+    train_df = whole_df[whole_df['id'].isin(train_idx)]
+    test_df = whole_df[~whole_df['id'].isin(train_idx)]
+    test_index = test_df['id'].values
 
-    train_df = pd.read_csv('datasets/train_dataset_pre_summary.csv', sep='|')
-    train_df['texts'] = train_df['texts'].apply(ast.literal_eval)
-    train_df['summaries'] = train_df['summaries'].apply(ast.literal_eval)
+    train_word_dict = pickle.load(open('datasets/train_word_dict.pickle', 'rb'))
+    vocab_size = len(train_word_dict) + 1
+    max_value = vocab_size-1
+    text_length = 16
+
     data_x = np.load('datasets/train_dataset_text_embeddings.npy')
-    data_y = np.zeros_like(data_x[..., :1])
-    for i, d in enumerate(train_df['summaries']):
-        for j in d:
-            data_y[i, j] = 1
+    data_y = np.zeros([whole_df.shape[0], vocab_size, text_length])
+    for line_index, one_key_words in enumerate(whole_df['key_words']):
+        for step, text in enumerate(one_key_words):
+            data_y[line_index, train_word_dict.get(text, max_value), step] = 1
 
-    train_test = pickle.load(open('datasets/kflod.pickle', 'rb'))
-    for (train_index, test_index), fold in zip(train_test, range(FOLD)):
-        X_train, X_valid = data_x[train_index], data_x[test_index]
-        y_train, y_valid = data_y[train_index], data_y[test_index]
-        valid_data = train_df.iloc[test_index][['texts', 'pred_summary']].to_dict(orient='records')
-        # 启动训练
-        evaluator = Evaluator()
+    # train_test = pickle.load(open('datasets/kflod.pickle', 'rb'))
+    # for (train_index, test_index), fold in zip(train_test, range(FOLD)):
+    X_train, X_valid = data_x[train_idx], data_x[test_index]
+    y_train, y_valid = data_y[train_idx], data_y[test_index]
+    valid_data = test_df[['texts', 'pred_summary']].to_dict(orient='records')
+    # 启动训练
+    evaluator = Evaluator()
 
-        model.fit(
-            X_train,
-            y_train,
-            epochs=epochs,
-            batch_size=batch_size,
-            callbacks=[evaluator]
-        )
+    model.fit(
+        X_train,
+        y_train,
+        epochs=epochs,
+        batch_size=batch_size,
+        callbacks=[evaluator]
+    )
