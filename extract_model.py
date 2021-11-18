@@ -120,6 +120,7 @@ def create_model():
     model.summary()
     return model
 
+
 input_size = 768
 hidden_size = 384
 epochs = 20

@@ -185,7 +185,7 @@ class CrossEntropy(Loss):
 model = build_transformer_model(
     nezha_config_path,
     nezha_checkpoint_path,
-    model='bert',
+    model='nezha',
     application='unilm',
     with_mlm='linear',
     keep_tokens=keep_tokens,  # 只保留keep_tokens中的字，精简原字表
@@ -326,7 +326,7 @@ def data_split(input_data):
 
 if __name__ == '__main__':
     # 加载数据
-    # data = load_data('datasets/train_dataset_key.csv')
+    data = load_data('datasets/train_dataset_key.csv')
 
     # train_df, test_df = data_split(data)
     callback = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=3, min_delta=0.001)
