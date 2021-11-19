@@ -63,10 +63,8 @@ if __name__ == '__main__':
     output = GlobalAveragePooling1D()(encoder.output)
     encoder = Model(encoder.inputs, output)
 
-    train_df = pd.read_csv('datasets/train_dataset_pre_summary_2.csv', sep='|')
-    train_df = train_df[train_df['id'] != 'id']
+    train_df_iter = pd.read_csv('datasets/train_dataset_pre_summary.csv', sep='|')
+    train_df = train_df_iter[train_df_iter['id'] != 'id']
     texts = train_df['texts'].apply(ast.literal_eval).values.tolist()
     embeddings = convert(texts)
-    a = 0
-    np.save('datasets/train_dataset_text_embeddings', embeddings)
-    train_df.to_csv('datasets/train_dataset_pre_summary.csv', sep='|', index=False)
+    np.save(f'datasets/train_dataset_text_embeddings', embeddings)

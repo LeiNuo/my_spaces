@@ -32,8 +32,6 @@ def text_segmentate(text, maxlen, seps, strips=None):
                 text = text + p
             else:
                 text = text + p
-            #todo 有些脏数据过长了
-            text = text[-512:]
         if text:
             texts.extend(text_segmentate(text, maxlen, seps[1:], strips))
         return texts
@@ -73,7 +71,8 @@ def calc_coverage(summary, text):
 def calc_metrics(row):
     content, abstract = row['content'], row['abstract']
     content = content.replace('【坐席】', '【坐席】A').replace('【客户】', '【客户】B')
-    texts = text_split(content, ['【坐席】', '【客户】', '，', '。'])
+    texts = text_split(content, ['【坐席】', '【客户】'])
+    texts = [i for i in texts if len(i)>2]
     # todo 用户不认可这个态度没有提取到
     # summaries = text_split(abstract, u'\n。；：，')
     #
@@ -87,11 +86,9 @@ def calc_metrics(row):
 
 
 if __name__ == '__main__':
-    log = open('run.log', 'w')
     # todo 对输入的text的中文数字变为数字
     train_df_iter = pd.read_csv('datasets/train_dataset.csv', sep='|', chunksize=1000)
     for train_df in tqdm(train_df_iter):
         train_df['texts'] = train_df.apply(calc_metrics, axis=1)
-        train_df.to_csv('datasets/train_dataset_pre_summary_2.csv', sep='|', index=False, mode='a')
-
-    log.close()
+        train_df.to_csv('datasets/train_dataset_pre_summary.csv', sep='|', index=False, mode='a')
+        break

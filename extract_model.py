@@ -9,7 +9,7 @@ from bert4keras.optimizers import Adam
 from keras.layers import *
 from keras.models import Model
 from tools import metric_keys, compute_metrics, FOLD
-import pickle
+from gensim.models import KeyedVectors
 
 
 class ResidualGatedConv1D(Layer):
@@ -115,7 +115,7 @@ def create_model():
 
     model = Model(x_in, x)
     model.compile(
-        loss='binary_crossentropy', optimizer=Adam(), metrics=['accuracy']
+        loss='sparse_categorical_crossentropy', optimizer=Adam(), metrics=['accuracy']
     )
     model.summary()
     return model
@@ -127,8 +127,16 @@ epochs = 20
 batch_size = 64
 threshold = 0.2
 
+def to_shape(a, shape):
+    y_, x_ = shape
+    y, x = a.shape
+    y_pad = (y_-y)
+    x_pad = (x_-x)
+    return np.pad(a,((0, y_pad),
+                     (0, x_pad)),
+                  mode = 'constant')
 
-model = create_model()
+# model = create_model()
 
 if __name__ == '__main__':
     train_idx = pd.read_csv('datasets/train_dataset_key_train.csv', sep='|')['id']
@@ -138,16 +146,20 @@ if __name__ == '__main__':
     test_df = whole_df[~whole_df['id'].isin(train_idx)]
     test_index = test_df['id'].values
 
-    train_word_dict = pickle.load(open('datasets/train_word_dict.pickle', 'rb'))
-    vocab_size = len(train_word_dict) + 1
-    max_value = vocab_size-1
-    text_length = 16
-
-    data_x = np.load('datasets/train_dataset_text_embeddings.npy')
-    data_y = np.zeros([whole_df.shape[0], vocab_size, text_length])
-    for line_index, one_key_words in enumerate(whole_df['key_words']):
-        for step, text in enumerate(one_key_words):
-            data_y[line_index, train_word_dict.get(text, max_value), step] = 1
+    # data_x = np.load('datasets/train_dataset_text_embeddings.npy')
+    verb_model = KeyedVectors.load_word2vec_format("temp/45000-small.txt")
+    max_index = whole_df['key_words'].apply(len).max()
+    data_y = np.zeros((100, max_index, 200))
+    for _id, one_key_words in tqdm(enumerate(whole_df['key_words'].iloc[:100])):
+        temp = []
+        for text in one_key_words:
+            if verb_model.key_to_index.get(text):
+                temp.append(verb_model.get_vector(text))
+        temp = np.array(temp)
+        temp = to_shape(temp, (max_index, 200))
+        data_y[_id,...] = temp
+    cc = data_y.shape
+    a = 0
 
     # train_test = pickle.load(open('datasets/kflod.pickle', 'rb'))
     # for (train_index, test_index), fold in zip(train_test, range(FOLD)):
